@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Login</title>
+  </head>
+  <body>
+        <h1>Logeate aquí</h1>
+    {{#if error}}
+      <p>{{ error }}</p>
+    {{/if}}
+    <form action="/login" method="POST">
+      <label for="email">Email:</label>
+      <input type="text" id="email" name="email" required>
+      <br>
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required>
+      <br>
+      <input type="submit" value="Login">
+    </form>
+    <a href="/auth/github">Iniciar sesión con Github</a>
+    <p>No tienes una cuenta? <a href="/register">Regístrate aquí</a></p>
+  </body>
+</html>
+
