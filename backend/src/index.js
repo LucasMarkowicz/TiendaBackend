@@ -14,11 +14,13 @@ const io = require("socket.io")(server);
 const ProductManager = require("../src/daos/productManager.js");
 const manager = new ProductManager();
 const accessRole = require("./middlewares/accessRole");
-const { requireLogin } = require("./middlewares/requireLogin.js")
-const cors = require('cors');
+const { requireLogin } = require("./middlewares/requireLogin.js");
+const cors = require("cors");
+const logger = require("../src/config/logger.js"); // Importar el logger
+
+
 
 app.use(cors());
-
 
 app.engine("handlebars", engine());
 app.set("view engine", "handlebars");
@@ -42,6 +44,9 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+
+
+
 app.get("/auth/github", passport.authenticate("github"));
 
 app.get(
@@ -55,15 +60,27 @@ app.get(
 
 router(app);
 
+
+//logger
+
+app.get("/loggerTest", (req, res) => {
+  logger.debug("Este es un mensaje de nivel debug de prueba");
+  logger.http("Este es un mensaje de nivel http de prueba");
+  logger.info("Este es un mensaje de nivel info de prueba");
+  logger.warning("Este es un mensaje de nivel warning de prueba");
+  logger.error("Este es un mensaje de nivel error de prueba");
+  logger.fatal("Este es un mensaje de nivel fatal de prueba");
+  res.send("Logs registrados en la consola de prueba");
+});
+
 //faker y mocking
 const { faker } = require("@faker-js/faker");
 const generateFakeProducts = () => {
   const fakeProducts = [];
-  
 
   for (let i = 0; i < 100; i++) {
-  const categorias = ["remeras", "pantalones", "buzos"];
-  const randomIndex = Math.floor(Math.random() * categorias.length);
+    const categorias = ["remeras", "pantalones", "buzos"];
+    const randomIndex = Math.floor(Math.random() * categorias.length);
     const fakeProduct = {
       _id: faker.database.mongodbObjectId(),
       title: faker.commerce.productName(),
@@ -77,14 +94,12 @@ const generateFakeProducts = () => {
     fakeProducts.push(fakeProduct);
   }
 
-    return fakeProducts;
-  };
-  
-  const fakeProducts = generateFakeProducts();
+  return fakeProducts;
+};
+
+const fakeProducts = generateFakeProducts();
 
 app.get("/mockingproducts", requireLogin, async (req, res) => {
-
-
   const { email, role } = req.session.user;
   console.log("soy req.session", req.session);
   console.log("soy req.session.user", req.session.user);
@@ -141,8 +156,6 @@ app.get("/mockingproducts", requireLogin, async (req, res) => {
 });
 
 
-
-
 //websockets
 
 io.on("connection", (socket) => {
@@ -183,8 +196,6 @@ app.get("/realtimeproducts", accessRole("admin"), async (req, res) => {
   const products = await manager.getProducts();
   res.render("realtimeproducts", { products });
 });
-
-
 
 server.listen(port, () => {
   console.log(`Servidor iniciado en http://localhost:${port}`);

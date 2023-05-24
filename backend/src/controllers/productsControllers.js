@@ -1,19 +1,17 @@
-const { Router } = require("express")
-const router = Router()
+const { Router } = require("express");
+const router = Router();
 const ProductManager = require("../daos/productManager.js");
 const manager = new ProductManager();
 const { requireLogin } = require("../middlewares/requireLogin.js");
 const productErrors = require("../errors/productErrors.js");
+const logger = require("../config/logger.js");
 
-
-
-// endpoint products
+// Endpoint products
 router.get("/", requireLogin, async (req, res) => {
   const { email, role } = req.session.user;
-  console.log("soy req.session", req.session)
-  console.log("soy req.session.user", req.session.user)
+  logger.info(`req.session.user: ${JSON.stringify(req.session.user, null, 2)}`);
   try {
-    const { limit = 4, page = 1, sort="", query="" } = req.query;
+    const { limit = 4, page = 1, sort = "", query = "" } = req.query;
 
     const allProducts = await manager.getProducts();
 
@@ -32,14 +30,18 @@ router.get("/", requireLogin, async (req, res) => {
 
     const products = sortedProducts
       .slice((page - 1) * limit, page * limit)
-      .map(product => product.toObject());
+      .map((product) => product.toObject());
 
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
     const nextPage = hasNextPage ? parseInt(page) + 1 : null;
     const prevPage = hasPrevPage ? parseInt(page) - 1 : null;
-    const prevLink = hasPrevPage ? `/api/products/?page=${prevPage}&limit=${limit}&sort=${sort}&query=${query}` : null;
-    const nextLink = hasNextPage ? `/api/products/?page=${nextPage}&limit=${limit}&sort=${sort}&query=${query}` : null;
+    const prevLink = hasPrevPage
+      ? `/api/products/?page=${prevPage}&limit=${limit}&sort=${sort}&query=${query}`
+      : null;
+    const nextLink = hasNextPage
+      ? `/api/products/?page=${nextPage}&limit=${limit}&sort=${sort}&query=${query}`
+      : null;
 
     res.render("home", {
       status: "success",
@@ -55,12 +57,13 @@ router.get("/", requireLogin, async (req, res) => {
       nextLink,
     });
   } catch (error) {
-    console.error(error);
+    logger.error("Error en la ruta GET 'api/products/':", error);
     res.status(500).send(productErrors.PRODUCT_LIST_ERROR);
   }
 });
 
 router.get("/json", async (req, res) => {
+  try {
     let limit;
     if (req.query.limit) {
       limit = parseInt(req.query.limit);
@@ -73,9 +76,14 @@ router.get("/json", async (req, res) => {
     } else {
       res.json({ products: products });
     }
-  });
-  
-  router.get("/:pid", async (req, res) => {
+  } catch (error) {
+    logger.error("Error en la ruta GET 'api/products/json':", error);
+    res.status(500).send(productErrors.PRODUCT_LIST_ERROR);
+  }
+});
+
+router.get("/:pid", async (req, res) => {
+  try {
     const pid = req.params.pid;
     const product = await manager.getProductById(pid);
     if (product) {
@@ -83,9 +91,14 @@ router.get("/json", async (req, res) => {
     } else {
       res.status(404).send(productErrors.PRODUCT_NOT_FOUND);
     }
-  });
-  
-  router.post("/", async (req, res) => {
+  } catch (error) {
+    logger.error(`Error en la ruta GET ' api/products/:pid': ${error}`);
+    res.status(500).send(productErrors.PRODUCT_GET_ERROR);
+  }
+});
+
+router.post("/", async (req, res) => {
+  try {
     const { title, description, price, thumbnail, code, stock, category } = req.body;
     const newProduct = await manager.addProduct(
       title,
@@ -98,9 +111,14 @@ router.get("/json", async (req, res) => {
     );
     res.send("Producto agregado exitosamente");
     //io.emit("addProduct", newProduct);
-  });
-  
-  router.put("/:pid", async (req, res) => {
+  } catch (error) {
+    logger.error("Error en la ruta POST 'api/products/':", error);
+    res.status(500).send(productErrors.PRODUCT_ADD_ERROR);
+  }
+});
+
+router.put("/:pid", async (req, res) => {
+  try {
     const pid = req.params.pid;
     const product = await manager.getProductById(pid);
     if (!product) {
@@ -110,9 +128,14 @@ router.get("/json", async (req, res) => {
       await manager.updateProduct(pid, updatedProduct);
       res.send("Producto actualizado exitosamente");
     }
-  });
-  
-  router.delete("/:pid", async (req, res) => {
+  } catch (error) {
+    logger.error(`Error en la ruta PUT 'api/products/:pid': ${error}`);
+    res.status(500).send(productErrors.PRODUCT_UPDATE_ERROR);
+  }
+});
+
+router.delete("/:pid", async (req, res) => {
+  try {
     const pid = req.params.pid;
     const product = await manager.getProductById(pid);
     if (!product) {
@@ -120,9 +143,12 @@ router.get("/json", async (req, res) => {
     } else {
       await manager.deleteProduct(pid);
       res.send("Producto eliminado exitosamente");
-      io.emit("deleteProduct", pid);
+      //io.emit("deleteProduct", pid);
     }
-  });
+  } catch (error) {
+    logger.error(`Error en la ruta DELETE 'api/products/:pid': ${error}`);
+    res.status(500).send(productErrors.PRODUCT_DELETE_ERROR);
+  }
+});
 
-
-  module.exports = router
+module.exports = router;

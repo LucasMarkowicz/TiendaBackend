@@ -1,18 +1,18 @@
-const { Router } = require("express")
-const router = Router()
+const { Router } = require("express");
+const router = Router();
 const UserManager = require('../daos/userManager.js');
 const users = new UserManager();
 const userErrors = require('../errors/userErrors.js');
+const logger = require("../config/logger.js");
 
-
-
-//endpoints usuarios
+// Endpoints usuarios
 router.get('/', (req, res) => {
   if (req.session.user) {
     res.redirect('/api/products');
   } else {
-  res.render('login');
-}});
+    res.render('login');
+  }
+});
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -20,7 +20,8 @@ router.post('/login', async (req, res) => {
     const user = await users.loginUser(email, password);
     req.session.user = user;
     res.redirect('/api/products');
-  } catch (err) {
+  } catch (error) {
+    logger.error(`Error en la ruta POST '/login': ${error}`);
     res.render('login', { error: userErrors.LOGIN_FAILED });
   }
 });
@@ -35,6 +36,7 @@ router.post('/register', async (req, res) => {
     await users.registerUser({ email, password, role });
     res.redirect('/');
   } catch (err) {
+    logger.error(`Error en la ruta POST '/register': ${err}`);
     res.render('register', { error: userErrors.REGISTER_FAILED });
   }
 });
@@ -45,4 +47,4 @@ router.post('/logout', (req, res) => {
   });
 });
 
-module.exports = router
+module.exports = router;
