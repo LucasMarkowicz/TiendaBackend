@@ -16,9 +16,9 @@ const manager = new ProductManager();
 const accessRole = require("./middlewares/accessRole");
 const { requireLogin } = require("./middlewares/requireLogin.js");
 const cors = require("cors");
-const logger = require("../src/config/logger.js"); // Importar el logger
-
-
+const logger = require("../src/config/logger.js");
+const swaggerJSDoc = require("swagger-jsdoc");
+const swaggerUiExpress = require("swagger-ui-express");
 
 app.use(cors());
 
@@ -44,9 +44,6 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-
-
-
 app.get("/auth/github", passport.authenticate("github"));
 
 app.get(
@@ -59,7 +56,6 @@ app.get(
 );
 
 router(app);
-
 
 //logger
 
@@ -155,7 +151,6 @@ app.get("/mockingproducts", requireLogin, async (req, res) => {
   }
 });
 
-
 //websockets
 
 io.on("connection", (socket) => {
@@ -196,6 +191,27 @@ app.get("/realtimeproducts", accessRole("admin"), async (req, res) => {
   const products = await manager.getProducts();
   res.render("realtimeproducts", { products });
 });
+
+//Swagger
+
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.1",
+    info: {
+      title: "Documentación del proyecto E-commerce",
+      description: "Backend de una tienda utilizando Node.JS, Express y MongoDB",
+    },
+  },
+  apis: [
+    `${__dirname}/docs/Carts.yaml`,
+    `${__dirname}/docs/Products.yaml`,
+  ],
+};
+
+const specs = swaggerJSDoc(swaggerOptions);
+
+app.use("/apidocs", swaggerUiExpress.serve, swaggerUiExpress.setup(specs));
+
 
 server.listen(port, () => {
   console.log(`Servidor iniciado en http://localhost:${port}`);
